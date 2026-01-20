@@ -20,6 +20,11 @@ pipeline {
     stage("Setup") {
       steps {
         prepareBuild()
+        withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_PAT')]) {
+          dir("$DIRECTORY") {
+            sh 'git config --global url."https://\$GITHUB_PAT:x-oauth-basic@github.com/".insteadOf "https://github.com/"'
+          }
+        }
       }
     }
    stage("Test") {
@@ -43,9 +48,19 @@ pipeline {
   
   }
   post {
+    success {
+      dir("${WORKSPACE}/${DIRECTORY}"){
+        finalizeBuild("", "charts/*")
+      }
+    }
     cleanup {
-     
-      sh "cd $DIRECTORY && make clean GOOS='linux' GOARCH='amd64'"
+      withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_PAT')]) {
+        dir("$DIRECTORY") {
+          sh "make clean || true"
+          sh 'git config --global --unset url."https://$GITHUB_PAT:x-oauth-basic@github.com/".insteadOf'
+        }
+      }
+      cleanWs()
     }
   }
 }
