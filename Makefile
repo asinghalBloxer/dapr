@@ -239,19 +239,6 @@ ifeq ($(GOARCH),amd64)
 	$(DOCKER) push $(DAPR_PLACEMENT_DOCKER_IMAGE_TAG)
 	$(info Pushing $(DAPR_SENTRY_DOCKER_IMAGE_TAG) docker image to DockerHub...)
 	$(DOCKER) push $(DAPR_SENTRY_DOCKER_IMAGE_TAG)
-	$(info Tagging and pushing to Harbor registry...)
-	$(DOCKER) tag $(DOCKER_IMAGE_TAG) $(HARBOR_IMAGE_TAG)
-	$(DOCKER) tag $(DAPR_RUNTIME_DOCKER_IMAGE_TAG) $(HARBOR_RUNTIME_IMAGE_TAG)
-	$(DOCKER) tag $(DAPR_PLACEMENT_DOCKER_IMAGE_TAG) $(HARBOR_PLACEMENT_IMAGE_TAG)
-	$(DOCKER) tag $(DAPR_SENTRY_DOCKER_IMAGE_TAG) $(HARBOR_SENTRY_IMAGE_TAG)
-	$(info Pushing $(HARBOR_IMAGE_TAG) docker image to Harbor...)
-	$(DOCKER) push $(HARBOR_IMAGE_TAG)
-	$(info Pushing $(HARBOR_RUNTIME_IMAGE_TAG) docker image to Harbor...)
-	$(DOCKER) push $(HARBOR_RUNTIME_IMAGE_TAG)
-	$(info Pushing $(HARBOR_PLACEMENT_IMAGE_TAG) docker image to Harbor...)
-	$(DOCKER) push $(HARBOR_PLACEMENT_IMAGE_TAG)
-	$(info Pushing $(HARBOR_SENTRY_IMAGE_TAG) docker image to Harbor...)
-	$(DOCKER) push $(HARBOR_SENTRY_IMAGE_TAG)
 else
 	-$(DOCKER) buildx create --use --name daprbuild
 	-$(DOCKER) run --rm --privileged multiarch/qemu-user-static --reset
@@ -267,6 +254,22 @@ ifeq ($(LATEST_RELEASE),true)
 	$(DOCKER) push $(DAPR_PLACEMENT_DOCKER_IMAGE_LATEST_TAG)
 	$(DOCKER) push $(DAPR_SENTRY_DOCKER_IMAGE_LATEST_TAG)
 endif
+
+# push docker images to Harbor registry (requires separate Harbor authentication)
+docker-push-harbor: docker-build
+	$(info Tagging and pushing to Harbor registry...)
+	$(DOCKER) tag $(DOCKER_IMAGE_TAG) $(HARBOR_IMAGE_TAG)
+	$(DOCKER) tag $(DAPR_RUNTIME_DOCKER_IMAGE_TAG) $(HARBOR_RUNTIME_IMAGE_TAG)
+	$(DOCKER) tag $(DAPR_PLACEMENT_DOCKER_IMAGE_TAG) $(HARBOR_PLACEMENT_IMAGE_TAG)
+	$(DOCKER) tag $(DAPR_SENTRY_DOCKER_IMAGE_TAG) $(HARBOR_SENTRY_IMAGE_TAG)
+	$(info Pushing $(HARBOR_IMAGE_TAG) docker image to Harbor...)
+	$(DOCKER) push $(HARBOR_IMAGE_TAG)
+	$(info Pushing $(HARBOR_RUNTIME_IMAGE_TAG) docker image to Harbor...)
+	$(DOCKER) push $(HARBOR_RUNTIME_IMAGE_TAG)
+	$(info Pushing $(HARBOR_PLACEMENT_IMAGE_TAG) docker image to Harbor...)
+	$(DOCKER) push $(HARBOR_PLACEMENT_IMAGE_TAG)
+	$(info Pushing $(HARBOR_SENTRY_IMAGE_TAG) docker image to Harbor...)
+	$(DOCKER) push $(HARBOR_SENTRY_IMAGE_TAG)
 
 windows-version:
 ifeq ($(WINDOWS_VERSION),)
@@ -333,3 +336,10 @@ clean:
 test:
 	go test ./pkg/... $(COVERAGE_OPTS)
 	go test ./tests/...
+
+.PHONY: list-of-images
+list-of-images:
+	@echo $(DOCKER_IMAGE_TAG)
+	@echo $(DAPR_RUNTIME_DOCKER_IMAGE_TAG)
+	@echo $(DAPR_PLACEMENT_DOCKER_IMAGE_TAG)
+	@echo $(DAPR_SENTRY_DOCKER_IMAGE_TAG)
