@@ -41,6 +41,7 @@ pipeline {
        steps {
         dir ("$DIRECTORY") {
           withDockerRegistry([credentialsId: "dockerhub-bloxcicd", url: ""]) {
+            sh "make docker-build GOOS='linux' GOARCH='amd64'"
             sh "make list-of-images"
           }
         }
