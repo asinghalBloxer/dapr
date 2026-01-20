@@ -41,38 +41,16 @@ pipeline {
        steps {
         dir ("$DIRECTORY") {
           withDockerRegistry([credentialsId: "dockerhub-bloxcicd", url: ""]) {
-            sh "make docker-build GOOS='linux' GOARCH='amd64'"
-            sh "make list-of-images"
+            sh "make docker-push-harbor GOOS='linux' GOARCH='amd64'"
           }
         }
-      }
-    }
-    stage("Generate-Image-List") {
-      steps {
-        sh """
-          cd $DIRECTORY
-          echo "Generating image list manually..."
-          GIT_COMMIT_NUMBER=\$(git -C $DIRECTORY rev-parse --short HEAD)
-          DAPR_VERSION=v1.0.0-ib-\$GIT_COMMIT_NUMBER
-
-          echo "infoblox/dapr:\$DAPR_VERSION" > ${WORKSPACE}/image_list.txt
-          echo "infoblox/daprd:\$DAPR_VERSION" >> ${WORKSPACE}/image_list.txt
-          echo "infoblox/placement:\$DAPR_VERSION" >> ${WORKSPACE}/image_list.txt
-          echo "infoblox/sentry:\$DAPR_VERSION" >> ${WORKSPACE}/image_list.txt
-
-          cat ${WORKSPACE}/image_list.txt
-        """
       }
     }
   }
   post {
     success {
-      script {
-        def images = readFile("${WORKSPACE}/image_list.txt").trim()
-        echo "Images to finalize: ${images}"
-        dir("${WORKSPACE}/${DIRECTORY}") {
-          finalizeBuild(images)
-        }
+      dir("${WORKSPACE}/${DIRECTORY}"){
+        finalizeBuild("", "charts/*")
       }
     }
     cleanup {
