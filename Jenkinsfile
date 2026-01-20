@@ -5,7 +5,7 @@ pipeline {
     label 'ubuntu_docker_label'
   }
   tools {
-    go "Go 1.16"
+    go "Go 1.20"
   }
     options {
         checkoutToSubdirectory('src/github.com/infobloxopen/dapr')
@@ -41,7 +41,6 @@ pipeline {
        steps {
         withDockerRegistry([credentialsId: "dockerhub-bloxcicd", url: ""]) {
           sh "cd $DIRECTORY && make docker-push GOOS='linux' GOARCH='amd64' "
-          
         }
       }
     }

@@ -16,6 +16,9 @@ REPO         := infoblox
 GITHUB_REPO  := git@github.com:infobloxopen
 WINDOWS_VERSION :=1809
 
+# Harbor registry configuration
+HARBOR_REGISTRY ?= harbor.services.sdp.infoblox.com/infobloxcto
+
 
 GIT_COMMIT  = $(shell git describe --tag --dirty=-unsupported --always || echo pre-commit)
 GIT_VERSION = $(shell git describe --always --abbrev=7 )
@@ -179,6 +182,12 @@ DAPR_PLACEMENT_DOCKER_IMAGE_TAG=$(REPO)/$(DAPR_PLACEMENT_DOCKER_IMAGE_NAME):$(DA
 DAPR_SENTRY_DOCKER_IMAGE_NAME=sentry
 DAPR_SENTRY_DOCKER_IMAGE_TAG=$(REPO)/$(DAPR_SENTRY_DOCKER_IMAGE_NAME):$(DAPR_VERSION)
 
+# Harbor image tags
+HARBOR_IMAGE_TAG=$(HARBOR_REGISTRY)/$(RELEASE_NAME):$(DAPR_VERSION)
+HARBOR_RUNTIME_IMAGE_TAG=$(HARBOR_REGISTRY)/$(DAPR_RUNTIME_DOCKER_IMAGE_NAME):$(DAPR_VERSION)
+HARBOR_PLACEMENT_IMAGE_TAG=$(HARBOR_REGISTRY)/$(DAPR_PLACEMENT_DOCKER_IMAGE_NAME):$(DAPR_VERSION)
+HARBOR_SENTRY_IMAGE_TAG=$(HARBOR_REGISTRY)/$(DAPR_SENTRY_DOCKER_IMAGE_NAME):$(DAPR_VERSION)
+
 ifeq ($(LATEST_RELEASE),true)
 DOCKER_IMAGE_LATEST_TAG=$(REPO)/$(RELEASE_NAME):$(LATEST_TAG)
 DAPR_RUNTIME_DOCKER_IMAGE_LATEST_TAG=$(DAPR_RUNTIME_DOCKER_IMAGE_TAG):$(LATEST_TAG)
@@ -222,14 +231,27 @@ endif
 # push docker image to the registry
 docker-push: check-arch-platform docker-build
 ifeq ($(GOARCH),amd64)
-	$(info Pushing $(DOCKER_IMAGE_TAG) docker image ...)
+	$(info Pushing $(DOCKER_IMAGE_TAG) docker image to DockerHub...)
 	$(DOCKER) push $(DOCKER_IMAGE_TAG)
-	$(info Pushing $(DAPR_RUNTIME_DOCKER_IMAGE_TAG) docker image ...)
+	$(info Pushing $(DAPR_RUNTIME_DOCKER_IMAGE_TAG) docker image to DockerHub...)
 	$(DOCKER) push $(DAPR_RUNTIME_DOCKER_IMAGE_TAG)
-	$(info Pushing $(DAPR_PLACEMENT_DOCKER_IMAGE_TAG) docker image ...)
+	$(info Pushing $(DAPR_PLACEMENT_DOCKER_IMAGE_TAG) docker image to DockerHub...)
 	$(DOCKER) push $(DAPR_PLACEMENT_DOCKER_IMAGE_TAG)
-	$(info Pushing $(DAPR_SENTRY_DOCKER_IMAGE_TAG) docker image ...)
+	$(info Pushing $(DAPR_SENTRY_DOCKER_IMAGE_TAG) docker image to DockerHub...)
 	$(DOCKER) push $(DAPR_SENTRY_DOCKER_IMAGE_TAG)
+	$(info Tagging and pushing to Harbor registry...)
+	$(DOCKER) tag $(DOCKER_IMAGE_TAG) $(HARBOR_IMAGE_TAG)
+	$(DOCKER) tag $(DAPR_RUNTIME_DOCKER_IMAGE_TAG) $(HARBOR_RUNTIME_IMAGE_TAG)
+	$(DOCKER) tag $(DAPR_PLACEMENT_DOCKER_IMAGE_TAG) $(HARBOR_PLACEMENT_IMAGE_TAG)
+	$(DOCKER) tag $(DAPR_SENTRY_DOCKER_IMAGE_TAG) $(HARBOR_SENTRY_IMAGE_TAG)
+	$(info Pushing $(HARBOR_IMAGE_TAG) docker image to Harbor...)
+	$(DOCKER) push $(HARBOR_IMAGE_TAG)
+	$(info Pushing $(HARBOR_RUNTIME_IMAGE_TAG) docker image to Harbor...)
+	$(DOCKER) push $(HARBOR_RUNTIME_IMAGE_TAG)
+	$(info Pushing $(HARBOR_PLACEMENT_IMAGE_TAG) docker image to Harbor...)
+	$(DOCKER) push $(HARBOR_PLACEMENT_IMAGE_TAG)
+	$(info Pushing $(HARBOR_SENTRY_IMAGE_TAG) docker image to Harbor...)
+	$(DOCKER) push $(HARBOR_SENTRY_IMAGE_TAG)
 else
 	-$(DOCKER) buildx create --use --name daprbuild
 	-$(DOCKER) run --rm --privileged multiarch/qemu-user-static --reset
