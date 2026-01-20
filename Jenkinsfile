@@ -46,11 +46,22 @@ pipeline {
         }
       }
     }
+    stage("Package-Helm-Chart") {
+      steps {
+        dir ("$DIRECTORY") {
+          sh "make push-chart"
+        }
+        dir("${WORKSPACE}/${DIRECTORY}") {
+          archiveArtifacts artifacts: 'charts/*.tgz'
+          archiveArtifacts artifacts: 'charts/*.build.properties'
+        }
+      }
+    }
   }
   post {
     success {
       dir("${WORKSPACE}/${DIRECTORY}"){
-        finalizeBuild("", "charts/*")
+        finalizeBuild("", "charts/*.build.properties")
       }
     }
     cleanup {

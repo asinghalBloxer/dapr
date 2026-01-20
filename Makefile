@@ -85,6 +85,9 @@ HELM_CHART_ROOT:=./charts
 HELM_CHART_DIR:=$(HELM_CHART_ROOT)/dapr
 HELM_OUT_DIR:=$(OUT_DIR)/install
 HELM_MANIFEST_FILE:=$(HELM_CHART_ROOT)/manifest/$(RELEASE_NAME).yaml
+CHART_NAME:=dapr
+CHART_VERSION:=$(DAPR_VERSION)
+CHART_FILE:=$(CHART_NAME)-$(CHART_VERSION).tgz
 
 ################################################################################
 # Go build details                                                             #
@@ -324,7 +327,7 @@ tidy:
 # Clean : clean                                                                #
 ################################################################################
 .PHONY:clean
-clean:
+clean: clean-chart
 	$(DOCKER) rmi -f $(shell docker images -q $(DOCKER_IMAGE_TAG))  || true
 	$(DOCKER) rmi -f $(shell docker images -q $(DAPR_RUNTIME_DOCKER_IMAGE_TAG)) || true
 	$(DOCKER) rmi -f $(shell docker images -q $(DAPR_PLACEMENT_DOCKER_IMAGE_TAG)) || true
@@ -343,3 +346,26 @@ list-of-images:
 	@echo $(DAPR_RUNTIME_DOCKER_IMAGE_TAG)
 	@echo $(DAPR_PLACEMENT_DOCKER_IMAGE_TAG)
 	@echo $(DAPR_SENTRY_DOCKER_IMAGE_TAG)
+
+################################################################################
+# Target: Helm chart packaging                                                #
+################################################################################
+.PHONY: helm-lint
+helm-lint:
+	$(HELM) lint $(HELM_CHART_DIR)
+
+.PHONY: helm-archive
+helm-archive:
+	$(HELM) package -d $(HELM_CHART_ROOT) $(HELM_CHART_DIR) --version $(CHART_VERSION)
+
+.PHONY: helm-properties
+helm-properties: charts/tpl.helm.properties
+	@sed 's/{CHART_FILE}/$(CHART_FILE)/g' charts/tpl.helm.properties > charts/$(CHART_NAME).build.properties
+
+.PHONY: push-chart
+push-chart: helm-lint helm-archive helm-properties
+
+.PHONY: clean-chart
+clean-chart:
+	rm -f charts/*.build.properties
+	rm -f charts/*.tgz
